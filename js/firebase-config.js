@@ -1,14 +1,11 @@
-// Paste your Firebase web app config here (Firebase console → Project settings → Your apps → Web app).
-// This config is not a secret: access is controlled by firestore.rules.
-// Leave it as null to keep everything on this device only.
-//
-// Example:
-// export const firebaseConfig = {
-//   apiKey: "AIza...",
-//   authDomain: "your-project.firebaseapp.com",
-//   projectId: "your-project",
-//   storageBucket: "your-project.appspot.com",
-//   messagingSenderId: "1234567890",
-//   appId: "1:1234567890:web:abc123",
-// };
-export const firebaseConfig = null;
+// Firebase web app config for project "hornbill-express" (Firestore in asia-southeast1).
+// Not a secret: access is controlled by firestore.rules. Set to null to keep everything on each device.
+// tools/build.py can override this from the FIREBASE_CONFIG variable or firebase.config.json.
+export const firebaseConfig = {
+  apiKey: 'AIzaSyDkNCe8BdZAhkHXAiDa8ufpdSb0piCYW2A',
+  authDomain: 'hornbill-express.firebaseapp.com',
+  projectId: 'hornbill-express',
+  storageBucket: 'hornbill-express.firebasestorage.app',
+  messagingSenderId: '62922276814',
+  appId: '1:62922276814:web:9c46798337a7cae335f59f',
+};
