@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#2A1B3D">
+<meta name="description" content="Hornbill Express: hop across Kuching and deliver kuih before the banjir catches you.">
+<title>Hornbill Express</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;700;800&display=swap">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<canvas id="game" aria-label="Hornbill Express game world"></canvas>
+<button id="hotspot" type="button" aria-label="Staff: hold for 5 seconds to open the operator panel" tabindex="-1"></button>
+
+<!-- ============ HUD ============ -->
+<div id="hud" class="hidden" aria-live="polite">
+  <div id="ticket" class="ticket">
+    <span class="kuih-icon" aria-hidden="true"></span>
+    <div class="ticket-text">
+      <span class="ticket-no" id="ticketNo">FIND THE KUIH</span>
+      <span class="ticket-main" id="ticketMain">Pick up a box of kuih lapis</span>
+      <span class="ticket-sub" id="ticketSub">It's on the lanes ahead</span>
+    </div>
+  </div>
+  <div id="todChip" class="chip-light hide-sm"><span class="sun" aria-hidden="true"></span><span class="tod-track"><span id="todFill"></span></span><span class="moon" aria-hidden="true"></span><span id="todText">Day</span></div>
+  <button id="pauseBtn" class="round-btn" type="button" aria-label="Pause"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="5" height="16" rx="2" fill="currentColor"></rect><rect x="14" y="4" width="5" height="16" rx="2" fill="currentColor"></rect></svg></button>
+  <div id="gauge" role="img" aria-label="Flood distance">
+    <svg width="22" height="16" viewBox="0 0 24 16" aria-hidden="true"><path d="M1 10c3-4 5-4 8 0s5 4 8 0 5-4 6-2" fill="none" stroke="#FFF1DC" stroke-width="3" stroke-linecap="round"></path></svg>
+    <div class="gauge-track"><div id="gaugeFill"></div></div>
+  </div>
+  <div id="chips">
+    <span id="powerChip" class="chip hidden"></span>
+    <span id="timeChip" class="chip hidden"></span>
+    <button id="baitBtn" class="chip chip-btn hidden" type="button">Drop durian bait <b id="baitN">1</b></button>
+  </div>
+  <div id="bottomBar">
+    <div class="stamp"><span id="dist">0 m</span><small>DISTANCE</small></div>
+    <div class="bar-col">
+      <span class="pill pill-mag" id="comboChip"><svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V5l11-2v13" fill="none" stroke="#FFF" stroke-width="2.6"></path><circle cx="6" cy="18" r="3" fill="#FFF"></circle><circle cx="17" cy="16" r="3" fill="#FFF"></circle></svg><span id="comboText">Hop on the beat</span></span>
+      <span class="pill pill-cream"><span class="coin" aria-hidden="true"></span><span id="tipsText">0 tips</span></span>
+    </div>
+  </div>
+  <div id="warn" class="warn hidden" role="status">Water is 2 lanes behind you!</div>
+  <div id="hint" class="hint hidden"><b id="hintTitle"></b><span id="hintText"></span><div class="dots" id="hintDots"></div><button id="skipTut" class="link-btn" type="button">Skip practice</button></div>
+  <div id="keysHint" class="keys-hint hide-touch">Arrows / WASD to hop · Space forward · E bait · P pause · M mute</div>
+</div>
+
+<div id="pad" class="hidden" aria-label="On-screen controls">
+  <span></span><button type="button" data-dir="up" aria-label="Hop forward"><svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5l7 10H5z"></path></svg></button><span></span>
+  <button type="button" data-dir="left" aria-label="Hop left"><svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l10-7v14z"></path></svg></button>
+  <button type="button" data-dir="down" aria-label="Hop back"><svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19L5 9h14z"></path></svg></button>
+  <button type="button" data-dir="right" aria-label="Hop right"><svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12L9 5v14z"></path></svg></button>
+</div>
+
+<div id="toasts" aria-live="polite"></div>
+
+<!-- ============ TITLE / ATTRACT ============ -->
+<section id="s-title" class="screen">
+  <div class="title-wrap">
+    <span id="eventChip" class="chip-gold hidden"></span>
+    <div class="logo"><span class="logo-a">HORNBILL</span><span class="logo-b">EXPRESS</span></div>
+    <p class="tagline">Deliver the kuih before the banjir!</p>
+    <canvas id="titleBird" width="160" height="160" aria-hidden="true"></canvas>
+    <button id="startBtn" class="btn btn-big" type="button"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4l14 8-14 8z" fill="#FFF"></path></svg><span id="startText">Start delivery</span></button>
+    <div class="round-row">
+      <button class="round-btn" id="couriersBtn" type="button" aria-label="Couriers"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"></path></svg></button>
+      <button class="round-btn" id="boardBtn" type="button" aria-label="Leaderboard"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M5 20V12M12 20V5M19 20v-6"></path></svg></button>
+      <button class="round-btn" id="passportBtn" type="button" aria-label="Landmark passport"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3h6v6l3 3v3H6v-3l3-3zM5 21h14"></path></svg></button>
+      <button class="round-btn" id="settingsBtn" type="button" aria-label="Settings"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2"></path></svg></button>
+    </div>
+    <p id="prizeLine" class="prize hidden"></p>
+  </div>
+  <aside id="attractBoard" class="card attract-board hidden">
+    <h2>Today's top runs</h2>
+    <ol id="attractList" class="runs"></ol>
+    <div class="today-stats"><div><b id="stRuns">0</b><span>Runs</span></div><div><b id="stKuih">0</b><span>Kuih delivered</span></div><div><b id="stLand">0</b><span>Landmarks found</span></div></div>
+  </aside>
+  <div class="title-foot"><span class="chip" id="bestChip">Best today 0 m</span></div>
+</section>
+
+<!-- ============ PAUSE / SETTINGS ============ -->
+<section id="s-pause" class="screen dim hidden">
+  <div class="panel">
+    <h1 class="h-white" id="pauseTitle">Paused</h1>
+    <div class="grid2" id="pauseBtns">
+      <button id="resumeBtn" class="btn" type="button">Resume</button>
+      <button id="restartBtn" class="btn btn-cream" type="button">Restart</button>
+    </div>
+    <div class="card settings">
+      <span class="label">SOUND</span>
+      <label>Music (kompang &amp; sape)<input id="setMusic" type="range" min="0" max="100"></label>
+      <label>Effects<input id="setSfx" type="range" min="0" max="100"></label>
+      <span class="label">PLAY</span>
+      <label>Show beat ring<input id="setBeat" type="checkbox"></label>
+      <label>On-screen pad<select id="setPad"><option value="auto">Auto</option><option value="on">On</option><option value="off">Off</option></select></label>
+      <span class="label">COMFORT</span>
+      <label>Reduce motion &amp; flashing<input id="setMotion" type="checkbox"></label>
+      <label>Colour-blind safe colours<input id="setCB" type="checkbox"></label>
+      <label>Fullscreen<input id="setFull" type="checkbox"></label>
+    </div>
+    <button id="quitBtn" class="btn btn-ghost" type="button">Quit to menu</button>
+  </div>
+</section>
+
+<!-- ============ RUN END ============ -->
+<section id="s-over" class="screen tint hidden">
+  <div class="panel">
+    <canvas id="overBird" width="120" height="120" aria-hidden="true"></canvas>
+    <h1 class="h-white" id="overTitle">Swept away by the banjir!</h1>
+    <div class="card">
+      <span class="label">RUN COMPLETE</span>
+      <div class="grid3">
+        <div><b id="oDist">0 m</b><span>Distance</span></div>
+        <div><b id="oKuih">0</b><span>Kuih delivered</span></div>
+        <div><b id="oDrop">0</b><span>Kuih dropped</span></div>
+      </div>
+      <div class="row-note"><span id="oTips">+0 tips</span><span id="oRank">#1 today</span></div>
+      <div id="oLand" class="land-note hidden"></div>
+    </div>
+    <button id="nameBtn" class="btn btn-big" type="button">Save to leaderboard</button>
+    <div class="grid2">
+      <button id="againBtn" class="btn btn-cream" type="button">Try again</button>
+      <button id="menuBtn" class="btn btn-cream" type="button">Main menu</button>
+    </div>
+    <p id="overAuto" class="small-white"></p>
+  </div>
+</section>
+
+<!-- ============ NAME ENTRY ============ -->
+<section id="s-name" class="screen ink hidden">
+  <div class="name-wrap">
+    <span class="chip-gold" id="nameChip">NEW HIGH SCORE</span>
+    <h1 class="name-score" id="nameScore">0 m</h1>
+    <p class="name-sub" id="nameSub">Enter your name (up to 12 letters, numbers or spaces)</p>
+    <div id="slots" class="slots" aria-live="polite"></div>
+    <input id="nameInput" class="sr-only" maxlength="12" autocomplete="off" autocapitalize="characters" aria-label="Your name">
+    <div id="keys" class="keys"></div>
+    <p id="nameErr" class="name-err" role="alert"></p>
+    <div class="name-actions">
+      <button id="delBtn" class="btn btn-ghost" type="button">⌫ Delete</button>
+      <button id="saveBtn" class="btn btn-big" type="button">Save</button>
+      <span id="nameAuto" class="small-white"></span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ LEADERBOARD ============ -->
+<section id="s-board" class="screen cream hidden">
+  <div class="page">
+    <div class="page-head"><button class="round-btn back" type="button" aria-label="Back"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></button><h1>Today's top runs</h1><span></span></div>
+    <ol id="boardList" class="runs big"></ol>
+    <p class="muted" id="boardEmpty">No runs yet today. Be the first!</p>
+  </div>
+</section>
+
+<!-- ============ PASSPORT ============ -->
+<section id="s-passport" class="screen cream hidden">
+  <div class="page">
+    <div class="page-head"><button class="round-btn back" type="button" aria-label="Back"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></button><h1>Landmark passport</h1><span class="chip" id="ppCount">0 / 9</span></div>
+    <label class="pp-name">Name<input id="ppName" maxlength="12" autocomplete="off" placeholder="Type your name"></label>
+    <p class="muted">Kuching landmarks appear in runs as paper stamps. Hop on one to add it to your passport. Collect all 9 to unlock the Sun bear.</p>
+    <div id="ppGrid" class="pp-grid"></div>
+  </div>
+</section>
+
+<!-- ============ COURIERS ============ -->
+<section id="s-couriers" class="screen cream hidden">
+  <div class="page">
+    <div class="page-head"><button class="round-btn back" type="button" aria-label="Back"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></button><h1>Couriers</h1><span class="chip" id="walletChip">0 tips</span></div>
+    <div id="courierGrid" class="courier-grid"></div>
+    <p class="muted" id="courierNote"></p>
+  </div>
+</section>
+
+<!-- ============ OPERATOR PIN ============ -->
+<section id="s-pin" class="screen ink hidden">
+  <div class="pin-wrap">
+    <h1 class="h-white">Staff PIN</h1>
+    <div id="pinDots" class="pin-dots"></div>
+    <div id="pinPad" class="pin-pad"></div>
+    <p id="pinErr" class="name-err" role="alert"></p>
+    <button id="pinCancel" class="btn btn-ghost" type="button">Cancel</button>
+  </div>
+</section>
+
+<!-- ============ OPERATOR ============ -->
+<section id="s-operator" class="screen sand hidden">
+  <div class="op">
+    <div class="op-head"><div><h1>Booth operator</h1><span>Staff only · Ctrl+Shift+O or hold the top-left corner 5s</span></div><button id="opClose" class="btn btn-ink" type="button">Close</button></div>
+    <div class="op-stats"><div><span>RUNS TODAY</span><b id="opRuns">0</b></div><div><span>KUIH DELIVERED</span><b id="opKuih">0</b></div><div><span>TODAY'S BEST</span><b id="opBest">0 m</b></div><div><span>LANDMARKS FOUND</span><b id="opLand">0</b></div></div>
+    <div class="op-grid">
+      <section><h2>Session</h2>
+        <label>Kiosk mode (attract screen)<input type="checkbox" data-set="kioskMode"></label>
+        <label>Run time limit<select data-set="timeLimit" data-num="1"><option value="0">Off</option><option value="90">90 s</option><option value="120">2 min</option><option value="180">3 min</option></select></label>
+        <label>Back to attract after<select data-set="attractAfter" data-num="1"><option value="15">15 s</option><option value="30">30 s</option><option value="60">60 s</option></select></label>
+        <label>Practice for every new player<input type="checkbox" data-set="tutorialEveryPlayer"></label>
+        <label>Courier shop (tips cost)<input type="checkbox" data-set="shopEnabled"></label>
+        <label>Day → night cycle<input type="checkbox" data-set="dayNight"></label>
+      </section>
+      <section><h2>Leaderboard</h2>
+        <p class="op-note" id="opCloud">Checking storage…</p>
+        <label>Block rude names<input type="checkbox" data-set="blockRude"></label>
+        <label>Reset daily at midnight<input type="checkbox" data-set="dailyReset"></label>
+        <label>Show on TV<select data-set="tvTop" data-num="1"><option value="5">Top 5</option><option value="8">Top 8</option><option value="10">Top 10</option></select></label>
+        <button id="opExport" class="btn btn-line" type="button">Export scores (CSV)</button>
+        <button id="opClear" class="btn btn-danger" type="button">Clear leaderboard…</button>
+        <p class="op-small">Clearing hides earlier runs on this device. Shared records are removed by the 7-day auto-delete, or by hand in the Firebase console.</p>
+      </section>
+      <section><h2>Landmark stamps</h2>
+        <label>Landmark stamps in runs<input type="checkbox" data-set="landmarksOn"></label>
+        <label>Stamp spawn rate<select data-set="landmarkRate"><option value="rare">Rare</option><option value="normal">Normal</option><option value="often">Often</option></select></label>
+        <button id="opResetPP" class="btn btn-danger" type="button">Reset all passports…</button>
+        <a class="btn btn-line" href="display.html" target="_blank" rel="noopener">Open TV display</a>
+      </section>
+      <section><h2>Booth &amp; display</h2>
+        <label>Show event name (optional)<input type="checkbox" data-set="showEvent"></label>
+        <label class="col">Event name<input type="text" data-set="eventName" maxlength="40" placeholder="Event name"></label>
+        <label>Show a prize (optional)<input type="checkbox" data-set="showPrize"></label>
+        <label class="col">Prize line<input type="text" data-set="prizeText" maxlength="60" placeholder="Top run today wins …"></label>
+        <label>Kiosk fullscreen lock<input type="checkbox" data-set="kioskLock"></label>
+        <label>Volume<input type="range" min="0" max="100" data-set="master" data-num="1"></label>
+        <label class="col">Staff PIN<input type="text" inputmode="numeric" maxlength="8" data-set="pin"></label>
+      </section>
+    </div>
+  </div>
+</section>
+
+<noscript><p style="padding:24px;font:16px sans-serif">Hornbill Express needs JavaScript.</p></noscript>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

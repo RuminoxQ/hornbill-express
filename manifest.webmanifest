@@ -1,0 +1,11 @@
+{
+  "name": "Hornbill Express",
+  "short_name": "Hornbill",
+  "description": "Hop across Kuching and deliver kuih before the banjir catches you.",
+  "start_url": "./index.html",
+  "display": "fullscreen",
+  "orientation": "any",
+  "background_color": "#2A1B3D",
+  "theme_color": "#2A1B3D",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

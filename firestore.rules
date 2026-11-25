@@ -1,0 +1,54 @@
+rules_version = '2';
+
+// Hornbill Express: the game may only ADD scores and add landmarks to passports.
+// Nobody can edit or delete records from the game; the 7-day TTL policy on `expireAt` deletes them.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function validName(n) {
+      return n is string && n.size() <= 12 && n.matches('^[A-Z0-9 ]*$');
+    }
+    // expiry must be set, in the future, and no more than ~7 days out (8 allows for clock drift and offline queues)
+    function validExpiry(d) {
+      return d.expireAt is timestamp
+        && d.expireAt > request.time
+        && d.expireAt < request.time + duration.value(8, 'd');
+    }
+    function smallInt(v, max) { return v is int && v >= 0 && v <= max; }
+
+    match /scores/{id} {
+      allow read: if true;
+      allow create: if request.resource.data.keys().hasOnly(['name', 'dist', 'kuih', 'tips', 'landmarks', 'cause', 'day', 'booth', 'at', 'ts', 'expireAt'])
+        && validName(request.resource.data.name)
+        && smallInt(request.resource.data.dist, 100000)
+        && smallInt(request.resource.data.kuih, 10000)
+        && smallInt(request.resource.data.tips, 1000000)
+        && request.resource.data.landmarks is list && request.resource.data.landmarks.size() <= 9
+        && request.resource.data.cause is string && request.resource.data.cause.size() <= 12
+        && request.resource.data.day is string && request.resource.data.day.size() <= 10
+        && request.resource.data.booth is string && request.resource.data.booth.size() <= 40
+        && request.resource.data.ts == request.time
+        // client time of the run (ms): within the last 8 days and not in the future
+        && request.resource.data.at is int
+        && request.resource.data.at > request.time.toMillis() - 691200000
+        && request.resource.data.at < request.time.toMillis() + 600000
+        && validExpiry(request.resource.data);
+      allow update, delete: if false;
+    }
+
+    match /passports/{name} {
+      allow read: if true;
+      allow create, update: if request.resource.data.keys().hasOnly(['name', 'landmarks', 'updatedAt', 'expireAt'])
+        && validName(request.resource.data.name)
+        && request.resource.data.name == name
+        && request.resource.data.landmarks is list && request.resource.data.landmarks.size() <= 9
+        && request.resource.data.updatedAt == request.time
+        && validExpiry(request.resource.data);
+      allow delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

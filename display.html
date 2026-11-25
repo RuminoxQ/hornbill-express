@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hornbill Express · Live display</title>
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;700;800&display=swap">
+<style>
+:root { --ink: #2A1B3D; --cream: #FFF1DC; --orange: #F28C38; --orange-d: #C46A1F; --teal: #1F7A80; --mag: #D94F70; --gold: #FFC94A; --head: 'Fredoka', 'Trebuchet MS', sans-serif; }
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--ink); color: var(--ink); font-family: 'Nunito', system-ui, sans-serif; overflow: hidden; }
+.wrap { height: 100vh; padding: 3vw 3.5vw; display: flex; flex-direction: column; gap: 1.6vw; }
+.head { display: flex; align-items: center; justify-content: space-between; gap: 2vw; }
+.logo { display: flex; flex-direction: column; gap: 0.3vw; }
+.logo-a { font-family: var(--head); font-weight: 700; font-size: 4.4vw; line-height: 0.9; color: var(--cream); text-shadow: 0 0.3vw 0 #120B22; }
+.logo-b { align-self: flex-start; font-family: var(--head); font-weight: 700; font-size: 2.4vw; color: #FFF; background: var(--orange); padding: 0.2vw 1vw 0.35vw; border-radius: 0.8vw; box-shadow: 0 0.3vw 0 var(--orange-d); transform: rotate(-3deg); }
+.side { text-align: right; color: #EBDDF0; font-weight: 800; font-size: 1.2vw; line-height: 1.4; }
+.grid { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 1.6vw; }
+.card { background: var(--cream); border-radius: 1.4vw; padding: 1.6vw 1.8vw; display: flex; flex-direction: column; gap: 1vw; box-shadow: 0 0.4vw 0 rgba(0,0,0,0.3); min-height: 0; }
+h2 { margin: 0; font-family: var(--head); font-size: 2vw; }
+.race { display: flex; flex-direction: column; gap: 1vw; flex: 1; justify-content: space-around; }
+.lane { display: flex; align-items: center; gap: 1vw; }
+.lane .n { width: 11vw; font-family: var(--head); font-weight: 700; font-size: 1.35vw; white-space: pre; overflow: hidden; text-overflow: ellipsis; }
+.lane .d { width: 6vw; text-align: right; font-family: var(--head); font-weight: 700; font-size: 1.45vw; }
+.river { position: relative; flex: 1; height: 3.4vw; border-radius: 1.7vw; background: var(--teal); background-image: repeating-linear-gradient(0deg, rgba(255,255,255,0.09) 0 2px, transparent 2px 14px); overflow: hidden; }
+.boat { position: absolute; top: 0.8vw; height: 1.8vw; width: 7.5vw; border-radius: 50% / 50%; background: #8B5A3C; box-shadow: inset 0 -0.3vw 0 rgba(0,0,0,0.2); transition: left 1.2s ease; display: flex; align-items: center; justify-content: space-around; padding: 0 1.2vw; }
+.boat i { width: 0.8vw; height: 0.8vw; border-radius: 50%; }
+.list { display: flex; flex-direction: column; gap: 0.6vw; }
+.row { display: flex; align-items: center; gap: 0.8vw; min-height: 3vw; padding: 0 1vw; border-radius: 0.8vw; background: #FFF; font-size: 1.15vw; }
+.row:nth-child(odd) { background: #FFE3B8; }
+.row .n { flex: 1; font-family: var(--head); font-weight: 700; font-size: 1.3vw; white-space: pre; overflow: hidden; text-overflow: ellipsis; }
+.row b { font-family: var(--head); width: 5vw; }
+.row span { font-weight: 800; width: 4.5vw; }
+.row em { font-style: normal; font-weight: 700; width: 6vw; text-align: right; }
+.ticker { display: flex; align-items: center; gap: 1vw; min-height: 4vw; padding: 0 1.6vw; border-radius: 2vw; background: var(--mag); color: #FFF; font-weight: 800; font-size: 1.35vw; }
+.kuih { width: 2vw; height: 2vw; border-radius: 0.3vw; flex-shrink: 0; background: repeating-linear-gradient(180deg, var(--mag) 0 0.25vw, var(--gold) 0.25vw 0.5vw, #7FB24A 0.5vw 0.75vw); box-shadow: 0 0 0 2px #FFF; }
+.empty { font-weight: 800; font-size: 1.3vw; }
+.foot { color: #EBDDF0; font-weight: 700; font-size: 1vw; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <div class="logo"><span class="logo-a">HORNBILL</span><span class="logo-b">EXPRESS</span></div>
+    <div class="side"><span id="side">Come to the booth to play</span><br><small id="sync" style="font-weight:700;opacity:.75"></small></div>
+  </div>
+  <div class="grid">
+    <div class="card"><h2>River race: today's top 5</h2><div class="race" id="race"></div><p class="foot" style="color:var(--ink);margin:0" id="raceNote">Each boat is a player's best run today.</p></div>
+    <div class="card"><h2>Latest runs</h2><div class="list" id="latest"></div></div>
+  </div>
+  <div class="ticker"><span class="kuih" aria-hidden="true"></span><span id="ticker">Waiting for the first delivery…</span></div>
+</div>
+<script type="module">
+import { store, topRuns, latestRuns, onChange, cloudStatus } from './js/storage.js';
+const $ = (id) => document.getElementById(id);
+const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+function ago(ts) { const m = Math.round((Date.now() - ts) / 60000); return m < 1 ? 'just now' : m + ' min ago'; }
+const cols = ['#FFC94A', '#D94F70', '#FFF1DC'];
+function render() {
+  store.reload();
+  const s = store.settings;
+  const top = topRuns(5);
+  const max = Math.max(50, ...top.map((t) => t.dist));
+  $('race').innerHTML = top.length ? top.map((t, i) => `<div class="lane"><span class="n">${esc(t.name)}</span><div class="river"><div class="boat" style="left:calc((100% - 7.5vw) * ${(t.dist / max).toFixed(3)})"><i style="background:${cols[i % 3]}"></i><i style="background:${cols[(i + 1) % 3]}"></i></div></div><span class="d">${t.dist} m</span></div>`).join('') : '<p class="empty">No runs yet today. The river is waiting!</p>';
+  $('raceNote').textContent = "Each boat is a player's best run today." + (s.showPrize && s.prizeText ? ' ' + s.prizeText : '');
+  const n = s.tvTop || 8;
+  const latest = latestRuns(n);
+  $('latest').innerHTML = latest.length ? latest.map((r) => `<div class="row"><span class="n">${esc(r.name || 'Guest')}</span><b>${r.dist} m</b><span>${r.kuih || 0} kuih</span><em>${ago(r.ts)}</em></div>`).join('') : '<p class="empty">Runs will appear here.</p>';
+  const last = latest[0];
+  $('ticker').textContent = last ? `${ago(last.ts) === 'just now' ? 'Just now' : 'Latest'}: ${last.name || 'A guest'} ran ${last.dist} m and delivered ${last.kuih || 0} kuih` + (last.landmarks && last.landmarks.length ? ` · found ${last.landmarks.join(', ')}` : '') : 'Waiting for the first delivery…';
+  $('side').innerHTML = (s.showEvent && s.eventName ? esc(s.eventName) + '<br>' : '') + 'Come to the booth to play';
+  const cs = cloudStatus().status;
+  $('sync').textContent = cs === 'online' ? 'Live from all booth devices' : cs === 'offline' ? 'Offline: showing this device, will sync' : cs === 'off' ? '' : cs === 'error' ? 'Showing this device only' : 'Connecting…';
+}
+render();
+onChange(render);
+setInterval(render, 5000);
+</script>
+</body>
+</html>

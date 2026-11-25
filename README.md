@@ -1,0 +1,118 @@
+# Hornbill Express
+
+Hop across Kuching as Kenyalang the hornbill and deliver kuih lapis before the banjir (flood) catches you. It's a browser game built for an event booth. It runs on PCs, laptops, tablets and phones, and keeps working offline once it has loaded.
+
+## Play locally
+
+```bash
+python tools/serve.py
+```
+
+Then open the address it prints:
+
+- **Game:** `http://localhost:8000/`
+- **TV screen:** `http://localhost:8000/display.html`
+
+Phones and tablets on the same Wi-Fi can use the "same Wi-Fi" address it prints.
+
+## Deploy on GitHub Pages
+
+1. Create a GitHub repository and push this folder to the `main` branch.
+2. On GitHub, open **Settings → Pages** and set **Source** to **GitHub Actions**.
+3. Every push to `main` now runs `.github/workflows/pages.yml`. It builds the site with `python tools/build.py` and publishes it to `https://<your-user>.github.io/<repo>/`.
+
+To build by hand, run `python tools/build.py`. It writes `dist/`, checks that every file the pages reference exists, and generates the offline service worker.
+
+## Firebase: shared leaderboard and 7-day auto-delete
+
+With Firebase connected, every booth device and the TV screen share one leaderboard and the landmark passports. Without it, everything stays on the device. If the Wi-Fi drops, runs are kept on the device and uploaded automatically when it comes back.
+
+Each score and passport is stored with an `expireAt` date 7 days ahead. A Firestore TTL (time-to-live) policy on that field deletes the record automatically, usually within 24 hours of it expiring. The game also hides anything older than 7 days and clears it from each device's own storage.
+
+### Set it up (one time, about 10 minutes)
+
+1. Create a project at [console.firebase.google.com](https://console.firebase.google.com).
+2. Go to **Build → Firestore Database → Create database** and choose **Production mode** and a region (for example `asia-southeast1`).
+3. Go to **Project settings → Your apps → Add app → Web** and copy the `firebaseConfig` object it shows.
+4. Give the game that config, in **one** of these ways:
+   - **GitHub (recommended):** go to repository **Settings → Secrets and variables → Actions → Variables**, add a variable named `FIREBASE_CONFIG`, and paste the config as JSON (keys in quotes, as in `firebase.config.example.json`).
+   - **Local file:** save it as `firebase.config.json` in the project folder. `tools/build.py` picks it up.
+   - **By hand:** paste it into `js/firebase-config.js`.
+5. Deploy the security rules and turn on the 7-day auto-delete:
+   ```bash
+   npm install -g firebase-tools && firebase login
+   python tools/setup_firebase.py --project YOUR_PROJECT_ID
+   ```
+   This deploys `firestore.rules`, and `firestore.indexes.json` turns on TTL for `expireAt` on `scores` and `passports`. If you'd rather not install anything, the script prints the console steps.
+6. Push to GitHub. In the operator panel, the Leaderboard section should say **Connected**.
+
+### What the security rules allow
+
+- **Allowed:** anyone can read the leaderboard. The game can only **add** scores, and only **add** landmarks to a passport.
+- **Checked on every write:** names (up to 12 capital letters, digits and spaces), number ranges, the time of the run, and an `expireAt` no more than about 7 days ahead.
+- **Not allowed:** nobody can edit or delete records from the game. **Clear leaderboard** in the operator panel hides earlier runs on that device only. To delete shared records early, use the Firebase console.
+- **Rude names:** the filter runs in the game, not in Firebase. For a public event, you could also turn on Firebase App Check.
+
+**Cost:** an event booth normally stays well within Firestore's free daily quota. TTL deletes count as normal document deletes.
+
+## Setting up the booth
+
+1. Open the game on the booth laptop or tablet.
+2. Open the operator panel: press **Ctrl + Shift + O**, or hold the top-left corner of the screen for 5 seconds. Then enter the staff PIN. The default PIN is **1234**; change it in the panel.
+3. Turn on **Kiosk mode**. This shows the attract screen with today's top runs, starts a run on any tap or key, and returns to the attract screen after each run.
+4. Optional settings:
+   - event name and prize line (both off by default)
+   - a time limit per run
+   - fullscreen lock
+   - landmark stamps
+   - courier shop
+5. For a TV screen, open `display.html` on any device: the same laptop (a second window), or a separate computer or smart TV browser if Firebase is connected. It updates itself.
+
+Settings are saved on each device. Scores and passports are shared through Firebase when it's connected; otherwise each device keeps its own. **Export scores (CSV)** in the operator panel downloads everything.
+
+## How to play
+
+- **Hop:** arrow keys or WASD. Space also hops forward, E drops durian bait, P pauses, M mutes. On touch screens, tap to hop forward or swipe in any direction. An on-screen pad appears automatically on touch screens, and can be turned on or off in Settings.
+- **Deliver:** pick up the box of kuih, then hop into the stall marked **DELIVER HERE**. Each delivery earns tips and pushes the flood back.
+- **Bumps:** getting bumped by a motorbike, trishaw, market cart or cyclist drops the kuih and knocks you back.
+- **What ends a run:** falling in the river, missing a roof, a crocodile, being carried off the edge on a boat, or the flood reaching you.
+- **Beat combo:** hop on the kompang beat to build a combo. A higher combo multiplies the tips you earn.
+- **Night:** the run cycles from day to night. At night, motorbikes are faster.
+- **Forks:** sometimes the path splits. Rooftops are risky but give double tips; the waterfront is safe.
+- **Power-ups:**
+
+  | Power-up | Effect |
+  | --- | --- |
+  | Durian bait | Distracts crocodiles |
+  | Payung | Holds back the flood |
+  | Wau kite | Glide 2 lanes per hop |
+  | Teh tarik | Slows traffic |
+  | Rattan helmet | Survive one bump |
+  | Tiffin carrier | Pulls in nearby tips |
+
+- **Landmarks:** paper stamps appear in runs. Save your name to keep them in your passport. Collecting all 9 unlocks the Sun bear.
+
+## Project layout
+
+```
+index.html          game page (all screens)
+display.html        TV / live leaderboard page
+css/style.css       interface styles
+js/config.js        tuning: flood speed, power-ups, landmarks, couriers, default settings
+js/world.js         procedural lanes, moving things, pickups
+js/game.js          rules: movement, collisions, flood, deliveries, combos
+js/render.js        canvas drawing (papercraft top-down style)
+js/audio.js         synthesised sound (sape, kompang, gong, rain) — no audio files
+js/main.js          screens, input, kiosk flow, operator panel
+js/names.js         name cleaning + rude-word filter (extend the list for your audience)
+js/storage.js       scores, passports, settings (local + Firebase)
+js/cloud.js         Firebase / Firestore sync, offline queue, 7-day expiry
+js/firebase-config.js  your Firebase web config (or null for local only)
+firestore.rules     security rules (add-only, validated, no deletes)
+firestore.indexes.json  TTL policy on expireAt for scores + passports
+tools/setup_firebase.py  deploys rules + TTL
+tools/build.py      build for GitHub Pages + offline service worker
+tools/serve.py      local server that prints LAN addresses
+```
+
+All art is drawn in code and all sounds are synthesised, so there are no third-party assets to license.
