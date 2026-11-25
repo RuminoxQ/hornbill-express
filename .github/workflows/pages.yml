@@ -15,11 +15,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -27,12 +24,22 @@ jobs:
           python-version: '3.12'
       - name: Build
         env:
-          # Repository → Settings → Secrets and variables → Actions → Variables → FIREBASE_CONFIG (the web config as JSON)
+          # Optional override: repository → Settings → Secrets and variables → Actions → Variables → FIREBASE_CONFIG
+          # (otherwise firebase.config.json / js/firebase-config.js in the repo is used)
           FIREBASE_CONFIG: ${{ vars.FIREBASE_CONFIG }}
         run: python tools/build.py --out dist
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v5
         with:
           path: dist
+
+  # deploy in its own job, after the artifact upload has finished
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
       - id: deployment
         uses: actions/deploy-pages@v5
