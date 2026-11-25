@@ -2,6 +2,8 @@
 import { COLS, BEAT_MS, POWERUPS, LANDMARKS, COURIERS, FLOOD } from './config.js';
 import { Game } from './game.js';
 import { Renderer } from './render.js';
+import { Renderer3D, webglAvailable } from './render3d.js';
+import { LIVES } from './config.js';
 import { Audio } from './audio.js';
 import { store, save, onChange, addScore, syncRun, topRuns, rankFor, stats, passportFor, refreshPassport, addLandmarks, exportCSV, clearScores, resetPassports, cloudStatus } from './storage.js';
 import { RETENTION_DAYS } from './cloud.js';
@@ -10,7 +12,10 @@ import { cleanName, isRude, MAX_NAME } from './names.js';
 const $ = (id) => document.getElementById(id);
 const S = () => store.settings;
 const canvas = $('game');
-const R = new Renderer(canvas);
+let R, USE3D = false;
+try { if (webglAvailable()) { R = new Renderer3D(canvas); USE3D = true; } } catch (e) { USE3D = false; }
+if (!R) R = new Renderer(canvas);
+document.body.classList.toggle('three', USE3D);
 const A = new Audio();
 const isTouch = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
 if (isTouch) document.body.classList.add('touch');
@@ -62,7 +67,7 @@ function toast(text, cls = '') {
 function makeDemo() {
   demo = new Game({ settings: Object.assign({}, S(), { timeLimit: 0, landmarksOn: false }), seed: 7 + Math.floor(Math.random() * 1000), courier: store.db.courier });
   demo.flood.active = false;
-  demoV = 2;
+  demoV = 6;
 }
 
 function refreshTitle() {
@@ -100,6 +105,7 @@ function goTitle() {
 }
 
 function drawBird(cv, courierId, carrying) {
+  if (USE3D) { try { Renderer3D.portrait(cv, courierId, carrying); return; } catch (e) { /* fall back to 2D */ } }
   const r = new Renderer(cv);
   r.ctx.setTransform(1, 0, 0, 1, 0, 0);
   r.ctx.clearRect(0, 0, cv.width, cv.height);
@@ -139,7 +145,7 @@ function endRun() {
   lastRun = { res, entry: db.scores[db.scores.length - 1] };
   A.stopMusic(); A.rain(0);
   mode = 'over';
-  const titles = { flood: 'Swept away by the banjir!', splash: 'Splash! Into the river', croc: 'Snapped by a croc!', fell: 'Oops! Fell off the roofs', swept: 'Carried off downstream!', time: "Time's up!" };
+  const titles = { flood: 'Swept away by the banjir!', splash: 'Splash! Into the river', croc: 'Snapped by a croc!', fell: 'Oops! Fell off the roofs', swept: 'Carried off downstream!', time: "Time's up!", moto: 'Hit by a motorbike!', trishaw: 'Bumped by a trishaw!', cart: 'Flattened by a market cart!', cyclist: 'Knocked over by a cyclist!' };
   $('overTitle').textContent = titles[res.cause] || 'Run complete';
   $('oDist').textContent = res.dist + ' m';
   $('oKuih').textContent = res.kuih;
@@ -376,6 +382,8 @@ function updateHud(force) {
   if (force) hudCache = {};
   const g = game;
   setText('dist', g.maxRow + ' m');
+  const hearts = Array.from({ length: Math.max(LIVES.start, g.lives) }, (_, i) => `<i class="${i < g.lives ? 'on' : ''}"></i>`).join('');
+  if (hudCache.hearts !== hearts) { hudCache.hearts = hearts; $('lives').innerHTML = hearts; $('lives').setAttribute('aria-label', g.lives + (g.lives === 1 ? ' life' : ' lives') + ' left'); }
   setText('tipsText', g.tips + ' tips');
   const m = g.comboMult();
   setText('comboText', g.combo > 0 ? `On beat ×${m}` : 'Hop on the beat');
@@ -424,7 +432,7 @@ function updateHud(force) {
   // tutorial hints
   if (tutorialActive) {
     let step = 0, title = 'Hop forward', text = isTouch ? 'Tap the screen or swipe up.' : 'Press ↑ or W. Hop on the drum beat for a combo.';
-    if (g.p.row >= 1 && !g.carrying && g.deliveries === 0) { step = 1; title = 'Grab the kuih'; text = 'Hop onto the box of kuih lapis.'; }
+    if (g.p.row >= 1 && !g.carrying && g.deliveries === 0) { step = 1; title = 'Grab the kuih'; text = 'Hop onto the box of kuih lapis. Hitting anything costs a life (not in practice).'; }
     if (g.carrying) { step = 2; title = 'Cross the road'; text = 'Wait for the motorbike to pass, then hop.'; }
     if (g.carrying && g.p.row >= 5) { step = 3; title = 'Ride a longboat'; text = 'Hop onto a boat. The river is too deep to swim!'; }
     if (g.carrying && g.p.row >= 8) { step = 4; title = 'Deliver it'; text = 'Hop into the stall marked DELIVER HERE.'; }
@@ -447,8 +455,15 @@ function handleEvents(now) {
       case 'deliver': A.gong(); toast(`Delivered! +${e.add} tips · flood pushed back`, 'good'); break;
       case 'power': A.power(); toast(POWERUPS[e.id].name + ': ' + POWERUPS[e.id].desc, 'teal'); break;
       case 'stamp': A.stamp(); toast((e.isNew ? 'New landmark: ' : 'Landmark: ') + e.name, 'teal'); break;
-      case 'bump': A.bump(); break;
-      case 'drop': toast('Bumped! Kuih dropped', 'mag'); break;
+      case 'lifeLost': {
+        if (['splash', 'flood', 'swept'].includes(e.cause)) A.splash(); else if (e.cause === 'fell') A.fall(); else A.bump();
+        const what = { splash: 'Splash!', flood: 'The banjir got you!', swept: 'Swept away!', fell: 'Fell off the roof!', croc: 'Croc bite!', moto: 'Hit by a motorbike!', trishaw: 'Hit by a trishaw!', cart: 'Hit by a cart!', cyclist: 'Hit by a cyclist!' }[e.cause] || 'Ouch!';
+        toast(`${what} ${e.lives} ${e.lives === 1 ? 'life' : 'lives'} left`, 'mag');
+        $('lives').classList.remove('hurt'); void $('lives').offsetWidth; $('lives').classList.add('hurt');
+        break;
+      }
+      case 'life': A.power(); toast(e.got ? `Extra life! ${e.lives} lives` : 'Lives full: +10 tips', 'good'); break;
+      case 'drop': toast('Kuih dropped', 'mag'); break;
       case 'helmet': A.bump(); toast('Helmet saved you!', 'teal'); break;
       case 'bonk': A.bonk(); break;
       case 'boat': A.boat(); break;
@@ -613,4 +628,4 @@ goTitle();
 requestAnimationFrame(frame);
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 // debug/test hook
-window.__hornbill = { get game() { return game; }, get mode() { return mode; }, startRun, store };
+window.__hornbill = { get game() { return game; }, get mode() { return mode; }, get renderer() { return R; }, startRun, store };

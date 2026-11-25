@@ -1,5 +1,5 @@
 // Game state and rules: movement, collisions, flood, deliveries, power-ups, rhythm.
-import { COLS, BEAT_MS, BEAT_WINDOW, HOP_MS, FLOOD, POWERUPS, LANDMARKS } from './config.js';
+import { COLS, BEAT_MS, BEAT_WINDOW, HOP_MS, FLOOD, POWERUPS, LANDMARKS, LIVES } from './config.js';
 import { World } from './world.js';
 
 const SAFE_KINDS = new Set(['padi', 'prom', 'goal', 'start']);
@@ -21,6 +21,7 @@ export class Game {
     this.combo = 0; this.comboPeak = 0;
     this.power = null;    // {id, t} timed or {id, hops}
     this.helmet = false; this.bait = 0; this.crocDistract = 0;
+    this.lives = LIVES.start; this.livesLost = 0; this.hitFx = null;
     this.time = 0; this.runTime = 0; this.clockStart = opts.now || 0;
     this.dead = false; this.cause = null; this.deadT = 0;
     this.particles = []; this.shake = 0; this.events = [];
@@ -133,7 +134,7 @@ export class Game {
     } else if (p.onEnt) {
       const L = this.lane(p.row);
       p.x += p.onEnt.speed * this.speedMult(L.kind) * dt;
-      if (p.x < -0.55 || p.x > COLS - 0.45) this.die('swept');
+      if (p.x < -0.55 || p.x > COLS - 0.45) this.hit('swept');
     }
     if (this.dead) return;
 
@@ -146,7 +147,8 @@ export class Game {
     if (this.dead) return;
     this.magnet();
     this.orders();
-    if (this.settings.timeLimit && this.runTime >= this.settings.timeLimit) this.die('time');
+    if (this.settings.timeLimit && this.runTime >= this.settings.timeLimit) this.gameOver('time');
+    if (this.hitFx) { this.hitFx.t -= dt; if (this.hitFx.t <= 0) this.hitFx = null; }
     this.updateParticles(dt);
     if (this.tutorial && this.flood.active === false && this.maxRow >= 12) { this.flood.active = true; this.flood.level = Math.min(this.flood.level, this.p.row - 5.5); this.emit('tutorialDone'); }
   }
@@ -185,10 +187,10 @@ export class Game {
     const g = this.world.ground(p.row, p.x);
     if (L.kind === 'river' || (L.kind === 'split' && g === 'water')) {
       const ent = L.kind === 'river' ? this.platformAt(L, p.x + 0.5) : null;
-      if (!ent) { this.die('splash'); return; }
+      if (!ent) { this.hit('splash'); return; }
       p.onEnt = ent;
       this.emit('boat');
-    } else if (g === 'gap') { this.die('fell'); return; }
+    } else if (g === 'gap') { this.hit('fell'); return; }
     else {
       p.onEnt = null; p.x = Math.round(p.x);
       if (SAFE_KINDS.has(L.kind) || (L.kind === 'split' && L.splitKinds[p.x] === 'prom')) p.lastSafe = { row: p.row, x: p.x };
@@ -218,29 +220,54 @@ export class Game {
     if (!(p.hopping && t > 0.25 && t < 0.75)) {
       for (const e of L.ents) {
         if (e.type === 'boat' || e.type === 'tambang') continue;
-        if (c + half > e.x + 0.08 && c - half < e.x + e.w - 0.08) { this.bump(e); return; }
+        if (c + half > e.x + 0.08 && c - half < e.x + e.w - 0.08) { this.hit(e.type); return; }
       }
     }
     if (L.kind === 'river' && !p.hopping && this.crocDistract <= 0) {
       for (const e of L.crocs) {
-        if (this.crocUp(e) && c + half > e.x + 0.2 && c - half < e.x + e.w - 0.2) { this.die('croc'); return; }
+        if (this.crocUp(e) && c + half > e.x + 0.2 && c - half < e.x + e.w - 0.2) { this.hit('croc'); return; }
       }
     }
   }
 
   crocUp(e) { return (e.phase % 4.2) < 2.6; }
 
-  bump(e) {
+  // Anything that hits you costs a life: traffic, crocs, water, roof gaps, being swept off, the flood.
+  // The rattan helmet absorbs one hit. At 0 lives the run is over. Practice runs never cost lives.
+  hit(cause) {
+    if (this.dead) return;
     const p = this.p;
-    this.shake = this.settings.reduceMotion ? 0 : 6;
-    this.particlesAt(this.pos(), this.carrying ? 'crumbs' : 'feathers', 10);
-    if (this.helmet) { this.helmet = false; p.invuln = 1.2; this.emit('helmet'); return; }
+    if (p.invuln > 0 && cause !== 'flood') return;
+    const at = this.pos();
+    const wet = cause === 'splash' || cause === 'flood' || cause === 'swept';
+    this.shake = this.settings.reduceMotion ? 0 : 8;
+    this.particlesAt(at, wet ? 'splash' : this.carrying ? 'crumbs' : 'feathers', 14);
+    this.hitFx = { cause, v: at.v, c: at.c, t: 0.7 };
+    if (this.helmet && cause !== 'flood') {
+      this.helmet = false; p.invuln = 1.5; this.emit('helmet', { cause });
+      if (cause === 'splash' || cause === 'fell' || cause === 'swept') this.respawn();
+      return;
+    }
     if (this.carrying) { this.carrying = false; this.order = null; this.dropped++; this.emit('drop'); }
     this.combo = 0;
-    this.emit('bump', { by: e.type });
-    p.hopping = false; p.row = p.lastSafe.row; p.x = p.lastSafe.x; p.onEnt = null; p.t = 1;
-    p.stun = 0.45; p.invuln = 1.5;
-    if (this.flood.level >= p.row) this.die('flood');
+    if (!(this.tutorial && !this.flood.active)) { this.lives--; this.livesLost++; }
+    if (this.lives <= 0) { this.gameOver(cause); return; }
+    this.emit('lifeLost', { cause, lives: this.lives });
+    this.respawn();
+  }
+
+  respawn() {
+    const p = this.p;
+    Object.assign(p, { hopping: false, row: p.lastSafe.row, x: p.lastSafe.x, fromRow: p.lastSafe.row, fromX: p.lastSafe.x, toRow: p.lastSafe.row, toX: p.lastSafe.x, onEnt: null, t: 1, stun: 0.6, invuln: 2.0 });
+    this.buffer = null;
+    // give the player room: push the flood back behind the respawn point
+    const room = FLOOD.respawnRoom;
+    if (this.flood.level > p.row - room) this.flood.level = p.row - room;
+  }
+
+  addLife() {
+    if (this.lives < LIVES.max) { this.lives++; return true; }
+    this.tips += 10; return false;
   }
 
   updateFlood(dt) {
@@ -249,11 +276,12 @@ export class Game {
     if (f.pause > 0) { f.pause -= dt; return; }
     if (this.power && this.power.id === 'payung') return;
     const p = this.p;
+    if (p.stun > 0) return;
     let sp = Math.min(FLOOD.maxSpeed, FLOOD.baseSpeed + FLOOD.speedPerLane * this.maxRow);
     if (p.row - f.level > FLOOD.catchUpGap) sp += FLOOD.catchUpBoost;
     f.level += sp * dt;
     const { v } = this.pos();
-    if (f.level >= v - 0.05) this.die('flood');
+    if (f.level >= v - 0.05) this.hit('flood');
   }
 
   floodGap() { return this.p.row - this.flood.level; }
@@ -277,6 +305,10 @@ export class Game {
       else this.power = { id: it.id, t: POWERUPS[it.id].dur };
       this.particlesAt(at, 'sparkle', 10);
       this.emit('power', { id: it.id });
+    } else if (it.type === 'life') {
+      const got = this.addLife();
+      this.particlesAt(at, 'petals', 12);
+      this.emit('life', { got, lives: this.lives });
     } else if (it.type === 'stamp') {
       const left = LANDMARKS.filter((l) => !this.knownLandmarks.has(l) && !this.landmarks.includes(l));
       const pool = left.length ? left : LANDMARKS.filter((l) => !this.landmarks.includes(l));
@@ -346,7 +378,7 @@ export class Game {
     }
   }
 
-  die(cause) {
+  gameOver(cause) {
     if (this.dead) return;
     this.dead = true; this.cause = cause; this.deadT = 0;
     this.shake = this.settings.reduceMotion ? 0 : 10;
@@ -370,6 +402,6 @@ export class Game {
   }
 
   result() {
-    return { dist: this.maxRow, kuih: this.kuihDelivered, deliveries: this.deliveries, dropped: this.dropped, tips: this.tips, landmarks: this.landmarks.slice(), cause: this.cause, combo: this.comboPeak, seconds: Math.round(this.runTime) };
+    return { dist: this.maxRow, kuih: this.kuihDelivered, deliveries: this.deliveries, dropped: this.dropped, tips: this.tips, landmarks: this.landmarks.slice(), cause: this.cause, combo: this.comboPeak, seconds: Math.round(this.runTime), livesLost: this.livesLost };
   }
 }

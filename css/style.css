@@ -97,7 +97,7 @@ body.kiosk #s-title .round-row { display: none; }
 .moon { width: 14px; height: 14px; border-radius: 50%; background: var(--ink); box-shadow: inset 4px -2px 0 var(--cream); }
 .tod-track { position: relative; width: 110px; height: 8px; border-radius: 4px; background: #E4CFAE; }
 #todFill { position: absolute; left: 0; top: 0; height: 8px; width: 0; border-radius: 4px; background: var(--ink); }
-#chips { position: absolute; left: 12px; top: calc(96px + var(--safe-t)); display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+#chips { position: absolute; left: 12px; top: calc(136px + var(--safe-t)); display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
 #bottomBar { position: absolute; left: 0; right: 0; bottom: calc(16px + var(--safe-b)); display: flex; justify-content: center; align-items: center; gap: 12px; }
 .stamp { width: 80px; height: 80px; border-radius: 50%; background: var(--orange); box-shadow: var(--soft); display: flex; flex-direction: column; align-items: center; justify-content: center; outline: 3px dashed rgba(255,241,220,0.8); outline-offset: -8px; color: #FFF; }
 .stamp span { font-family: var(--head); font-weight: 700; font-size: 22px; line-height: 1; }
@@ -212,3 +212,11 @@ select { height: 40px; border-radius: 10px; border: 2px solid #D8C6A8; font-fami
 .op-note[data-status=online] { background: #D6F0E4; }
 .op-note[data-status=error] { background: #FBD5D5; }
 .op-small { margin: 0; font-weight: 700; font-size: 12px; line-height: 1.35; }
+
+/* lives */
+.lives { position: absolute; left: 12px; top: calc(96px + var(--safe-t)); display: flex; gap: 6px; padding: 6px 10px; border-radius: 16px; background: rgba(42,27,61,0.75); }
+.lives i { width: 22px; height: 20px; display: block; background: rgba(255,255,255,0.25); clip-path: polygon(50% 100%, 0 42%, 0 18%, 14% 0, 36% 0, 50% 16%, 64% 0, 86% 0, 100% 18%, 100% 42%); }
+.lives i.on { background: #E23B5A; }
+.lives.hurt { animation: hurt 0.6s ease; }
+@keyframes hurt { 0%, 100% { transform: none; } 20% { transform: translateX(-6px); } 40% { transform: translateX(6px); } 60% { transform: translateX(-4px); } 80% { transform: translateX(3px); } }
+body.reduce .lives.hurt { animation: none; }

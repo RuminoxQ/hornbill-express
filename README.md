@@ -1,6 +1,6 @@
 # Hornbill Express
 
-Hop across Kuching as Kenyalang the hornbill and deliver kuih lapis before the banjir (flood) catches you. It's a browser game built for an event booth. It runs on PCs, laptops, tablets and phones, and keeps working offline once it has loaded.
+Hop across Kuching as Kenyalang the hornbill and deliver kuih lapis before the banjir (flood) catches you. It's a 3D voxel browser game with an angled camera and diagonal lanes, built for an event booth. It runs on PCs, laptops, tablets and phones, and keeps working offline once it has loaded.
 
 ## Play locally
 
@@ -86,8 +86,8 @@ Settings are saved on each device. Scores and passports are shared through Fireb
 
 - **Hop:** arrow keys or WASD. Space also hops forward, E drops durian bait, P pauses, M mutes. On touch screens, tap to hop forward or swipe in any direction. An on-screen pad appears automatically on touch screens, and can be turned on or off in Settings.
 - **Deliver:** pick up the box of kuih, then hop into the stall marked **DELIVER HERE**. Each delivery earns tips and pushes the flood back.
-- **Bumps:** getting bumped by a motorbike, trishaw, market cart or cyclist drops the kuih and knocks you back.
-- **What ends a run:** falling in the river, missing a roof, a crocodile, being carried off the edge on a boat, or the flood reaching you.
+- **Lives:** you start with 3 lives (up to 5). **Anything that hits you costs a life:** a motorbike, trishaw, market cart or cyclist, a crocodile, falling in the river, missing a roof, being carried off the edge on a boat, or the flood reaching you.
+- **After a hit:** you drop the kuih, respawn on the last safe tile with a moment of invincibility, and the flood is pushed back a little. At 0 lives the run ends. Practice runs don't cost lives. Red heart pickups give an extra life.
 - **Beat combo:** hop on the kompang beat to build a combo. A higher combo multiplies the tips you earn.
 - **Night:** the run cycles from day to night. At night, motorbikes are faster.
 - **Forks:** sometimes the path splits. Rooftops are risky but give double tips; the waterfront is safe.
@@ -99,7 +99,7 @@ Settings are saved on each device. Scores and passports are shared through Fireb
   | Payung | Holds back the flood |
   | Wau kite | Glide 2 lanes per hop |
   | Teh tarik | Slows traffic |
-  | Rattan helmet | Survive one bump |
+  | Rattan helmet | Absorbs one hit (no life lost) |
   | Tiffin carrier | Pulls in nearby tips |
 
 - **Landmarks:** paper stamps appear in runs. Save your name to keep them in your passport. Collecting all 9 unlocks the Sun bear.
@@ -113,7 +113,9 @@ css/style.css       interface styles
 js/config.js        tuning: flood speed, power-ups, landmarks, couriers, default settings
 js/world.js         procedural lanes, moving things, pickups
 js/game.js          rules: movement, collisions, flood, deliveries, combos
-js/render.js        canvas drawing (papercraft top-down style)
+js/render3d.js      3D voxel renderer (Three.js, angled orthographic camera)
+js/render.js        2D fallback renderer for devices without WebGL
+vendor/three.module.min.js  Three.js r187 (MIT, see vendor/three.LICENSE), bundled so the game works offline
 js/audio.js         synthesised sound (sape, kompang, gong, rain) — no audio files
 js/main.js          screens, input, kiosk flow, operator panel
 js/names.js         name cleaning + rude-word filter (extend the list for your audience)
@@ -127,4 +129,4 @@ tools/build.py      build for GitHub Pages + offline service worker
 tools/serve.py      local server that prints LAN addresses
 ```
 
-All art is drawn in code and all sounds are synthesised, so there are no third-party assets to license.
+All art is built from voxels in code and all sounds are synthesised, so there are no third-party art or audio assets to license. The only library is Three.js (MIT licence).

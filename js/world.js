@@ -170,6 +170,7 @@ export class World {
     if (row < 3) return;
     if (this.stampsOn && this.rand() < this.stampRate && free.length) L.pick.set(take(), { type: 'stamp' });
     if (this.rand() < 0.085 && free.length) L.pick.set(take(), { type: 'power', id: this.pick(['durian', 'payung', 'wau', 'teh', 'helmet', 'tiffin']) });
+    if (row > 12 && this.rand() < 0.022 && free.length) L.pick.set(take(), { type: 'life' });
     const tips = this.rand() < 0.55 ? this.ri(1, 2) : 0;
     for (let i = 0; i < tips && free.length; i++) L.pick.set(take(), { type: 'tip', value: 1 });
   }

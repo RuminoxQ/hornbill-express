@@ -7,6 +7,8 @@ export const BEAT_MS = 60000 / BPM;
 export const BEAT_WINDOW = 140;    // ms either side of a beat that counts as "on beat"
 export const HOP_MS = 130;
 
+export const LIVES = { start: 3, max: 5 };
+
 export const FLOOD = {
   startBehind: 4,        // lanes behind the start
   baseSpeed: 0.30,       // lanes per second at the start
@@ -16,6 +18,7 @@ export const FLOOD = {
   catchUpBoost: 0.9,
   checkpointPause: 2.0,  // seconds the flood pauses at a new waterfront lane
   deliveryPushback: 2,   // lanes pushed back per kuih in the order
+  respawnRoom: 4.5,      // after losing a life the flood is pushed at least this far behind you
 };
 
 export const PALETTE = {
@@ -39,7 +42,7 @@ export const POWERUPS = {
   payung: { name: 'Payung', desc: 'Holds back the banjir for 6s', color: '#D94F70', shape: 'square', dur: 6 },
   wau:    { name: 'Wau kite', desc: 'Next 4 hops glide 2 lanes', color: '#F28C38', shape: 'diamond', hops: 4 },
   teh:    { name: 'Teh tarik', desc: 'Traffic slows for 5s', color: '#B07A4F', shape: 'cup', dur: 5 },
-  helmet: { name: 'Rattan helmet', desc: 'Survive one bump', color: '#FFC94A', shape: 'dome' },
+  helmet: { name: 'Rattan helmet', desc: 'Absorbs one hit', color: '#FFC94A', shape: 'dome' },
   tiffin: { name: 'Tiffin carrier', desc: 'Pulls in nearby tips for 8s', color: '#1F7A80', shape: 'tiffin', dur: 8 },
 };
 

@@ -274,6 +274,9 @@ export class Renderer {
       ctx.strokeStyle = '#FFFFFF'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx, cy, ts * 0.38 + Math.sin(this.now / 150) * 2, 0, TAU); ctx.stroke();
     } else if (it.type === 'power') {
       this.powerIcon(it.id, cx, cy, ts * 0.26);
+    } else if (it.type === 'life') {
+      ctx.fillStyle = '#E23B5A'; ctx.beginPath();
+      const s = ts * 0.3; ctx.moveTo(cx, cy + s * 0.8); ctx.bezierCurveTo(cx - s * 1.4, cy - s * 0.2, cx - s * 0.6, cy - s * 1.2, cx, cy - s * 0.4); ctx.bezierCurveTo(cx + s * 0.6, cy - s * 1.2, cx + s * 1.4, cy - s * 0.2, cx, cy + s * 0.8); ctx.fill();
     } else if (it.type === 'stamp') {
       ctx.save(); ctx.translate(cx, cy); ctx.rotate(-0.15);
       this.rr(-ts * 0.24, -ts * 0.24, ts * 0.48, ts * 0.48, 6, '#FFF1DC');
