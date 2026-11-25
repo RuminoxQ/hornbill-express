@@ -1,7 +1,8 @@
 rules_version = '2';
 
 // Hornbill Express: the game may only ADD scores and add landmarks to passports.
-// Nobody can edit or delete records from the game; the 7-day TTL policy on `expireAt` deletes them.
+// Records can't be edited, and can only be deleted once their `expireAt` (7 days) has passed:
+// the game sweeps expired records itself (free plan); a TTL policy can also do it on the Blaze plan.
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -33,7 +34,8 @@ service cloud.firestore {
         && request.resource.data.at > request.time.toMillis() - 691200000
         && request.resource.data.at < request.time.toMillis() + 600000
         && validExpiry(request.resource.data);
-      allow update, delete: if false;
+      allow update: if false;
+      allow delete: if resource.data.expireAt < request.time;
     }
 
     match /passports/{name} {
@@ -44,7 +46,7 @@ service cloud.firestore {
         && request.resource.data.landmarks is list && request.resource.data.landmarks.size() <= 9
         && request.resource.data.updatedAt == request.time
         && validExpiry(request.resource.data);
-      allow delete: if false;
+      allow delete: if resource.data.expireAt < request.time;
     }
 
     match /{document=**} {

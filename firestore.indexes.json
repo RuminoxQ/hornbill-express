@@ -1,7 +1,4 @@
 {
   "indexes": [],
-  "fieldOverrides": [
-    { "collectionGroup": "scores", "fieldPath": "expireAt", "ttl": true, "indexes": [] },
-    { "collectionGroup": "passports", "fieldPath": "expireAt", "ttl": true, "indexes": [] }
-  ]
+  "fieldOverrides": []
 }

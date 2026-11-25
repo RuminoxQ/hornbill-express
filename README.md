@@ -27,7 +27,19 @@ To build by hand, run `python tools/build.py`. It writes `dist/`, checks that ev
 
 With Firebase connected, every booth device and the TV screen share one leaderboard and the landmark passports. Without it, everything stays on the device. If the Wi-Fi drops, runs are kept on the device and uploaded automatically when it comes back.
 
-Each score and passport is stored with an `expireAt` date 7 days ahead. A Firestore TTL (time-to-live) policy on that field deletes the record automatically, usually within 24 hours of it expiring. The game also hides anything older than 7 days and clears it from each device's own storage.
+Each score and passport is stored with an `expireAt` date 7 days ahead. Expired records are deleted automatically, in two ways:
+
+- **On the free Spark plan (current setup):** any open booth device or TV page deletes expired records every 30 minutes. The security rules allow a delete only once a record has expired. The game also hides anything older than 7 days straight away, and clears it from each device's own storage.
+- **Optionally, on the Blaze plan:** Firestore's own TTL (time-to-live) policy can delete them too, even when no device is open. Google requires billing to be turned on for TTL. To set it up, copy `firestore.indexes.blaze.json` over `firestore.indexes.json` and run `python tools/setup_firebase.py --project hornbill-express --ttl`.
+
+### This repository's project
+
+This repository is already connected to the Firebase project **hornbill-express** (Firestore in `asia-southeast1`, Singapore):
+
+- `firebase.config.json` holds the web config. It isn't secret.
+- The security rules are already published.
+
+The steps below are for setting up a different project.
 
 ### Set it up (one time, about 10 minutes)
 
@@ -38,22 +50,22 @@ Each score and passport is stored with an `expireAt` date 7 days ahead. A Firest
    - **GitHub (recommended):** go to repository **Settings → Secrets and variables → Actions → Variables**, add a variable named `FIREBASE_CONFIG`, and paste the config as JSON (keys in quotes, as in `firebase.config.example.json`).
    - **Local file:** save it as `firebase.config.json` in the project folder. `tools/build.py` picks it up.
    - **By hand:** paste it into `js/firebase-config.js`.
-5. Deploy the security rules and turn on the 7-day auto-delete:
+5. Deploy the security rules:
    ```bash
    npm install -g firebase-tools && firebase login
    python tools/setup_firebase.py --project YOUR_PROJECT_ID
    ```
-   This deploys `firestore.rules`, and `firestore.indexes.json` turns on TTL for `expireAt` on `scores` and `passports`. If you'd rather not install anything, the script prints the console steps.
+   This deploys `firestore.rules`. If you'd rather not install anything, the script prints the console steps (you paste the rules into Firebase console → Firestore → Rules).
 6. Push to GitHub. In the operator panel, the Leaderboard section should say **Connected**.
 
 ### What the security rules allow
 
 - **Allowed:** anyone can read the leaderboard. The game can only **add** scores, and only **add** landmarks to a passport.
 - **Checked on every write:** names (up to 12 capital letters, digits and spaces), number ranges, the time of the run, and an `expireAt` no more than about 7 days ahead.
-- **Not allowed:** nobody can edit or delete records from the game. **Clear leaderboard** in the operator panel hides earlier runs on that device only. To delete shared records early, use the Firebase console.
+- **Not allowed:** nobody can edit records, and a record can only be deleted once it has expired. **Clear leaderboard** in the operator panel hides earlier runs on that device only. To delete shared records early, use the Firebase console.
 - **Rude names:** the filter runs in the game, not in Firebase. For a public event, you could also turn on Firebase App Check.
 
-**Cost:** an event booth normally stays well within Firestore's free daily quota. TTL deletes count as normal document deletes.
+**Cost:** on the free Spark plan an event booth normally stays well within Firestore's daily quota, and there is no card on file, so it can't be charged.
 
 ## Setting up the booth
 
@@ -109,8 +121,8 @@ js/storage.js       scores, passports, settings (local + Firebase)
 js/cloud.js         Firebase / Firestore sync, offline queue, 7-day expiry
 js/firebase-config.js  your Firebase web config (or null for local only)
 firestore.rules     security rules (add-only, validated, no deletes)
-firestore.indexes.json  TTL policy on expireAt for scores + passports
-tools/setup_firebase.py  deploys rules + TTL
+firestore.indexes.json  index config (firestore.indexes.blaze.json adds TTL, Blaze plan only)
+tools/setup_firebase.py  deploys rules (+ TTL with --ttl on Blaze)
 tools/build.py      build for GitHub Pages + offline service worker
 tools/serve.py      local server that prints LAN addresses
 ```

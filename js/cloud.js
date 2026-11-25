@@ -1,5 +1,6 @@
 // Firebase / Cloud Firestore sync. Shared leaderboard + passports across every booth device and the TV.
-// Every document carries `expireAt` (now + 7 days); a Firestore TTL policy on that field deletes it.
+// Every document carries `expireAt` (now + 7 days). Expired documents are deleted by the game itself
+// (sweepExpired, works on the free Spark plan). On the paid Blaze plan a Firestore TTL policy can do it too.
 // If Firebase isn't configured or can't load, the game keeps working on local storage only.
 import { firebaseConfig } from './firebase-config.js';
 
@@ -37,6 +38,8 @@ export function initCloud() {
     state.status = navigator.onLine === false ? 'offline' : 'connecting';
     window.addEventListener('offline', () => { state.status = 'offline'; notify(); });
     notify();
+    setTimeout(sweepExpired, 15000);
+    setInterval(sweepExpired, 30 * 60000);
     return true;
   }).catch((e) => {
     state.status = 'error'; state.error = String(e && e.message || e);
@@ -104,4 +107,26 @@ export async function pushPassport(name, landmarks) {
     }, { merge: true });
     return true;
   } catch (e) { state.error = e.message; notify(); return false; }
+}
+
+// Delete documents whose expireAt has passed. Any booth device or TV does this; the security rules only
+// allow deleting a document once it has expired. Throttled so a room full of devices doesn't all sweep at once.
+const SWEEP_KEY = 'hornbill-express:lastSweep';
+export async function sweepExpired(force = false) {
+  if (!db || !fs) return 0;
+  try {
+    const last = +localStorage.getItem(SWEEP_KEY) || 0;
+    if (!force && Date.now() - last < 25 * 60000) return 0;
+    localStorage.setItem(SWEEP_KEY, String(Date.now()));
+  } catch (e) { /* storage blocked: sweep anyway */ }
+  let removed = 0;
+  for (const col of ['scores', 'passports']) {
+    try {
+      const q = fs.query(fs.collection(db, col), fs.where('expireAt', '<', fs.Timestamp.now()), fs.limit(200));
+      const snap = await fs.getDocs(q);
+      // don't wait for the server: offline deletes are queued and sent when the connection returns
+      snap.docs.forEach((d) => { fs.deleteDoc(d.ref).catch(() => {}); removed++; });
+    } catch (e) { /* offline or index still building: try next time */ }
+  }
+  return removed;
 }

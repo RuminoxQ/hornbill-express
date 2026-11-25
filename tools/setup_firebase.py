@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """One-time Firebase setup for Hornbill Express.
 
-Deploys the security rules and turns on the 7-day auto-delete (TTL) for `scores` and `passports`.
+Deploys the security rules. Expired records (older than 7 days) are deleted by the game itself, which works
+on the free Spark plan. With --ttl (needs the paid Blaze plan) it also turns on Firestore's own TTL policy.
 Needs the Firebase CLI (npm install -g firebase-tools; firebase login). If it isn't installed,
 the script prints the console steps and the gcloud commands instead.
 
@@ -25,17 +26,23 @@ def run(cmd):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--project", required=True, help="Firebase project ID")
+    ap.add_argument("--ttl", action="store_true", help="also enable Firestore TTL (Blaze plan only)")
     a = ap.parse_args()
 
     if shutil.which("firebase"):
         # firestore.indexes.json carries the TTL field overrides, so one deploy sets rules + TTL
-        code = run(["firebase", "deploy", "--only", "firestore", "--project", a.project])
+        code = run(["firebase", "deploy", "--only", "firestore:rules", "--project", a.project])
+        if code == 0 and a.ttl:
+            for c in COLLECTIONS:
+                if shutil.which("gcloud"):
+                    run(["gcloud", "firestore", "fields", "ttls", "update", "expireAt", f"--collection-group={c}", "--enable-ttl", "--async", f"--project={a.project}"])
+            if not shutil.which("gcloud"):
+                print("For TTL, copy firestore.indexes.blaze.json over firestore.indexes.json and run: firebase deploy --only firestore:indexes")
         if code == 0:
-            print("\nDone. Rules deployed and TTL on `expireAt` requested for: " + ", ".join(COLLECTIONS))
-            print("TTL policies can take a few minutes to become active. Check: Firebase console → Firestore → Time-to-live.")
+            print("\nDone. Rules deployed. Expired records are swept by the game every 30 minutes while a booth device or the TV is open.")
         sys.exit(code)
 
-    if shutil.which("gcloud"):
+    if shutil.which("gcloud") and a.ttl:
         for c in COLLECTIONS:
             run(["gcloud", "firestore", "fields", "ttls", "update", "expireAt", f"--collection-group={c}", "--enable-ttl", "--async", f"--project={a.project}"])
         print("\nTTL requested. Now publish the rules: Firebase console → Firestore → Rules → paste firestore.rules → Publish.")
@@ -44,10 +51,10 @@ def main():
     print("""Neither the Firebase CLI nor gcloud is installed. Do it in the browser:
 
 1. Firebase console → Firestore Database → Rules: paste the contents of firestore.rules, then Publish.
-2. Google Cloud console → Firestore → Time-to-live → Create policy:
+   That's all you need: the game deletes records older than 7 days by itself.
+2. Optional, Blaze plan only: Google Cloud console → Firestore → Time-to-live → Create policy
      collection group: scores     timestamp field: expireAt
      collection group: passports  timestamp field: expireAt
-   (Records are deleted automatically, typically within 24 hours after they expire.)
 
 Or install the CLI (npm install -g firebase-tools, then firebase login) and run this script again.""")
 
