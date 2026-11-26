@@ -1,3 +1,4 @@
+// Hornbill Express · © 2026 Kiu Kwan Tai. All rights reserved.
 // Procedural Kuching: lanes, moving things, pickups.
 import { COLS, VEHICLE_COLORS, CUSTOMERS } from './config.js';
 

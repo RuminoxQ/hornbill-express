@@ -1,3 +1,4 @@
+// Hornbill Express · © 2026 Kiu Kwan Tai. All rights reserved.
 // Persistence: Firebase (shared, when configured) + this device's localStorage (always, for offline + CSV).
 // Everything older than 7 days is dropped locally; in Firestore a TTL policy on `expireAt` deletes it.
 import { DEFAULT_SETTINGS, LANDMARKS } from './config.js';

@@ -1,3 +1,4 @@
+// Hornbill Express · © 2026 Kiu Kwan Tai. All rights reserved.
 // 3D voxel renderer (Three.js): angled orthographic camera, lanes run diagonally across the screen.
 // World units: 1 = one tile. x = column (lanes run along x), z = -row (forward is -z), y = up.
 import * as THREE from '../vendor/three.module.min.js';
@@ -95,18 +96,20 @@ function glowSprite(color, size) {
 
 // ------------------------------------------------------------------ models
 export function buildCourier(id) {
-  const c = COURIERS.find((k) => k.id === id) || COURIERS[0];
+  const gold = id === 'golden';
+  const c = gold ? { id: 'hornbill' } : (COURIERS.find((k) => k.id === id) || COURIERS[0]);
+  const K = gold ? { b: '#D9A21B', w: '#B8860B', t: '#FFF1A8', k: '#FFF1A8', c: '#FF7A1A' } : { b: '#26222B', w: '#3A3442', t: '#FFFFFF', k: '#FFC94A', c: '#F28C38' };
   const g = new THREE.Group();
   const body = new THREE.Group(); g.add(body); g.userData.body = body;
   if (c.id === 'hornbill') {
-    vox(body, 0, 0.08, 0.05, 0.56, 0.46, 0.62, '#26222B');               // body
-    vox(body, 0, 0.12, 0.42, 0.34, 0.12, 0.26, '#FFFFFF');               // tail
-    vox(body, 0, 0.12, 0.52, 0.34, 0.05, 0.1, '#26222B');                // tail band
-    vox(body, -0.32, 0.16, 0.05, 0.1, 0.3, 0.44, '#3A3442');             // wings
-    vox(body, 0.32, 0.16, 0.05, 0.1, 0.3, 0.44, '#3A3442');
-    vox(body, 0, 0.42, -0.18, 0.4, 0.36, 0.38, '#26222B');               // head
-    vox(body, 0, 0.5, -0.52, 0.16, 0.16, 0.36, '#FFC94A');               // beak
-    vox(body, 0, 0.66, -0.44, 0.14, 0.12, 0.3, '#F28C38');               // casque
+    vox(body, 0, 0.08, 0.05, 0.56, 0.46, 0.62, K.b);                     // body
+    vox(body, 0, 0.12, 0.42, 0.34, 0.12, 0.26, K.t);                     // tail
+    vox(body, 0, 0.12, 0.52, 0.34, 0.05, 0.1, K.b);                      // tail band
+    vox(body, -0.32, 0.16, 0.05, 0.1, 0.3, 0.44, K.w);                   // wings
+    vox(body, 0.32, 0.16, 0.05, 0.1, 0.3, 0.44, K.w);
+    vox(body, 0, 0.42, -0.18, 0.4, 0.36, 0.38, K.b);                     // head
+    vox(body, 0, 0.5, -0.52, 0.16, 0.16, 0.36, K.k);                     // beak
+    vox(body, 0, 0.66, -0.44, 0.14, 0.12, 0.3, K.c);                     // casque
     vox(body, -0.21, 0.6, -0.24, 0.03, 0.1, 0.1, '#FFFFFF'); vox(body, 0.21, 0.6, -0.24, 0.03, 0.1, 0.1, '#FFFFFF');
     vox(body, -0.225, 0.62, -0.26, 0.02, 0.05, 0.05, '#2A1B3D'); vox(body, 0.225, 0.62, -0.26, 0.02, 0.05, 0.05, '#2A1B3D');
     vox(body, -0.12, 0, 0.05, 0.08, 0.1, 0.1, '#FFC94A'); vox(body, 0.12, 0, 0.05, 0.08, 0.1, 0.1, '#FFC94A');
@@ -229,6 +232,16 @@ function pickupModel(it) {
   }
   inner.position.y = 0.3;
   return g;
+}
+
+// small tufts in the verge left of the board (3x5 cells, 3 glyphs)
+const VG = [[1,0,1,1,1,0,1,0,0,1,1,0,1,0,1], [1,0,1,1,1,0,1,0,0,1,1,0,1,0,1], [1,1,1,0,1,0,0,1,0,0,1,0,0,1,0]];
+function verge(g, top) {
+  VG.forEach((bits, k) => bits.forEach((b, i) => {
+    if (!b) return;
+    const col = i % 3, row = Math.floor(i / 3);
+    vox(g, -9.2 + k * 0.95 + col * 0.24, top, -0.42 + row * 0.2, 0.18, 0.05, 0.16, '#6E8F3C', { shadow: false });
+  }));
 }
 
 // ------------------------------------------------------------------ renderer
@@ -365,6 +378,7 @@ export class Renderer3D {
       const b = textSprite('Waterfront · safe ▶', '#FFF1DC', '#2A1B3D', 0.8); b.position.set(half + 1 + half / 2, 0.9, 0.6); g.add(b);
     }
     mergeInto(s, g);
+    if (r % 500 === 88) verge(g, top);
     g.userData.top = top;
     g.userData.ents = new Map();
     g.userData.picks = new Map();

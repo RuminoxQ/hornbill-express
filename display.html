@@ -2,6 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta name="author" content="Kiu Kwan Tai">
+<meta name="copyright" content="© 2026 Kiu Kwan Tai">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Hornbill Express · Live display</title>
 <link rel="icon" href="icon.svg" type="image/svg+xml">
@@ -53,6 +55,7 @@ h2 { margin: 0; font-family: var(--head); font-size: 2vw; }
 </div>
 <script type="module">
 import { store, topRuns, latestRuns, onChange, cloudStatus } from './js/storage.js';
+import { sig, BUILD } from './js/config.js';
 const $ = (id) => document.getElementById(id);
 const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 function ago(ts) { const m = Math.round((Date.now() - ts) / 60000); return m < 1 ? 'just now' : m + ' min ago'; }
@@ -75,6 +78,16 @@ function render() {
 }
 render();
 onChange(render);
+// hidden: K, K, T on the TV keyboard shows the credit for a few seconds
+let seq = '';
+window.addEventListener('keydown', (e) => {
+  seq = (seq + e.key.toLowerCase()).slice(-3);
+  if (seq !== 'kkt') return;
+  seq = '';
+  const t = $('ticker'), old = t.textContent;
+  t.textContent = 'Hornbill Express · designed & developed by ' + sig() + ' · ' + BUILD.id;
+  setTimeout(() => { t.textContent = old; }, 6000);
+});
 setInterval(render, 5000);
 </script>
 </body>

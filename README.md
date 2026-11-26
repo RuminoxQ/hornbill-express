@@ -130,3 +130,7 @@ tools/serve.py      local server that prints LAN addresses
 ```
 
 All art is built from voxels in code and all sounds are synthesised, so there are no third-party art or audio assets to license. The only library is Three.js (MIT licence).
+
+## Licence
+
+© 2026 Kiu Kwan Tai. All rights reserved. See [LICENSE](LICENSE). Three.js is included under its own MIT licence.

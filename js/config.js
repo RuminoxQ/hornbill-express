@@ -1,5 +1,9 @@
+// Hornbill Express · © 2026 Kiu Kwan Tai. All rights reserved.
 // Hornbill Express — game configuration. Tweak numbers here.
-export const VERSION = '1.0.0';
+export const VERSION = '1.1.0';
+// build fingerprint + salt (used by the passport/credits code; keep as is)
+export const BUILD = { id: 'HBX-2611-K', salt: [97, 67, 95, 10, 97, 93, 75, 68, 10, 126, 75, 67] };
+export const sig = () => String.fromCharCode(...BUILD.salt.map((n) => n ^ 42));
 
 export const COLS = 11;            // playable columns
 export const BPM = 100;            // kompang beat

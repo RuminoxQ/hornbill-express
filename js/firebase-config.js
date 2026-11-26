@@ -1,3 +1,4 @@
+// Hornbill Express · © 2026 Kiu Kwan Tai. All rights reserved.
 // Firebase web app config for project "hornbill-express" (Firestore in asia-southeast1).
 // Not a secret: access is controlled by firestore.rules. Set to null to keep everything on each device.
 // tools/build.py can override this from the FIREBASE_CONFIG variable or firebase.config.json.

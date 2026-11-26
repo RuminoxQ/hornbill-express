@@ -1,3 +1,4 @@
+// Hornbill Express · © 2026 Kiu Kwan Tai. All rights reserved.
 // Canvas renderer: top-down with a slight tilt, soft papercraft shapes.
 import { COLS, LANE_COLORS, CB_VEHICLE_COLORS, VEHICLE_COLORS, POWERUPS, COURIERS, BEAT_MS } from './config.js';
 

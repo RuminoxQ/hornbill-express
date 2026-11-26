@@ -1,9 +1,10 @@
+// Hornbill Express · © 2026 Kiu Kwan Tai. All rights reserved.
 // Hornbill Express — app shell: screens, input, loop, audio cues, kiosk behaviour.
 import { COLS, BEAT_MS, POWERUPS, LANDMARKS, COURIERS, FLOOD } from './config.js';
 import { Game } from './game.js';
 import { Renderer } from './render.js';
 import { Renderer3D, webglAvailable } from './render3d.js';
-import { LIVES } from './config.js';
+import { LIVES, BUILD, VERSION, sig } from './config.js';
 import { Audio } from './audio.js';
 import { store, save, onChange, addScore, syncRun, topRuns, rankFor, stats, passportFor, refreshPassport, addLandmarks, exportCSV, clearScores, resetPassports, cloudStatus } from './storage.js';
 import { RETENTION_DAYS } from './cloud.js';
@@ -123,7 +124,8 @@ function startRun(forceTutorial) {
   const s = S();
   tutorialActive = forceTutorial !== undefined ? forceTutorial : (s.kioskMode ? s.tutorialEveryPlayer : !store.db.tutorialSeen);
   const known = passportFor(lastName);
-  game = new Game({ settings: s, tutorial: tutorialActive, courier: store.db.courier, now: performance.now(), knownLandmarks: known });
+  game = new Game({ settings: s, tutorial: tutorialActive, courier: goldenNext ? 'golden' : store.db.courier, now: performance.now(), knownLandmarks: known });
+  goldenNext = false;
   mode = 'play';
   R.camV = 0; R.camC = COLS / 2; R.follow(game, 0, true);
   show(null);
@@ -563,6 +565,7 @@ $('hotspot').addEventListener('pointerdown', () => { holdT = setTimeout(openPin,
 
 // buttons
 $('startBtn').addEventListener('click', () => startRun());
+$('s-title').addEventListener('pointerdown', (e) => { if (S().kioskMode && mode === 'title' && !e.target.closest('button, a, #titleBird, #hotspot')) { A.unlock(); startRun(); } });
 $('couriersBtn').addEventListener('click', openCouriers);
 $('boardBtn').addEventListener('click', openBoard);
 $('passportBtn').addEventListener('click', openPassport);
@@ -621,6 +624,47 @@ function renderCloud() {
 }
 onChange(() => { if (mode === 'title') refreshTitle(); if (mode === 'operator') renderCloud(); });
 
+// ---------------------------------------------------------------- about (hidden)
+// Opens from the title screen: tap the hornbill 7 times, or type K-I-U (keyboard, when not in kiosk mode).
+let eggTaps = [], eggKeys = '', goldenNext = false;
+function about() {
+  if (document.getElementById('egg')) return;
+  const el = document.createElement('div');
+  el.id = 'egg'; el.className = 'egg'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'About');
+  el.innerHTML = '<div class="egg-card"><canvas width="200" height="200" aria-hidden="true"></canvas>' +
+    '<b class="egg-title">Hornbill Express</b><span class="egg-by">designed &amp; developed by</span>' +
+    '<b class="egg-name"></b><span class="egg-meta"></span>' +
+    '<div class="egg-row"><button type="button" class="btn" data-a="gold">Fly as Golden Kenyalang</button>' +
+    '<button type="button" class="btn btn-cream" data-a="close">Close</button></div></div>';
+  el.querySelector('.egg-name').textContent = sig();
+  el.querySelector('.egg-meta').textContent = 'Kuching, Sarawak · ' + new Date(2026, 10).getFullYear() + ' · v' + VERSION + ' · ' + BUILD.id;
+  document.body.appendChild(el);
+  drawBird(el.querySelector('canvas'), 'golden', true);
+  A.unlock(); A.gong();
+  for (let i = 0; i < 18; i++) {
+    const p = document.createElement('i'); p.className = 'egg-p';
+    p.style.left = Math.random() * 100 + '%'; p.style.animationDelay = (Math.random() * 0.8) + 's';
+    p.style.background = ['#FFC94A', '#F28C38', '#D94F70', '#FFF1A8'][i % 4];
+    el.appendChild(p);
+  }
+  el.addEventListener('click', (e) => {
+    const a = e.target.closest('[data-a]'); if (!a) return;
+    if (a.dataset.a === 'gold') { goldenNext = true; toast('Golden Kenyalang ready for your next run', 'good'); }
+    el.remove();
+  });
+}
+$('titleBird').addEventListener('pointerdown', (e) => {
+  e.stopPropagation();
+  const now = performance.now();
+  eggTaps = eggTaps.filter((t) => now - t < 4000); eggTaps.push(now);
+  if (eggTaps.length >= 7) { eggTaps = []; about(); }
+});
+window.addEventListener('keydown', (e) => {
+  if (mode !== 'title' || S().kioskMode || e.repeat) return;
+  eggKeys = (eggKeys + e.key.toLowerCase()).slice(-3);
+  if (eggKeys === 'kiu') { eggKeys = ''; about(); }
+});
+
 // ---------------------------------------------------------------- boot
 buildKeys();
 applySettings();
@@ -628,4 +672,4 @@ goTitle();
 requestAnimationFrame(frame);
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 // debug/test hook
-window.__hornbill = { get game() { return game; }, get mode() { return mode; }, get renderer() { return R; }, startRun, store };
+window.__hornbill = { get game() { return game; }, get mode() { return mode; }, get renderer() { return R; }, startRun, store, about };

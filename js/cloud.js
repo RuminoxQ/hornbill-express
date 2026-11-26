@@ -1,3 +1,4 @@
+// Hornbill Express · © 2026 Kiu Kwan Tai. All rights reserved.
 // Firebase / Cloud Firestore sync. Shared leaderboard + passports across every booth device and the TV.
 // Every document carries `expireAt` (now + 7 days). Expired documents are deleted by the game itself
 // (sweepExpired, works on the free Spark plan). On the paid Blaze plan a Firestore TTL policy can do it too.

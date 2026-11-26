@@ -1,3 +1,4 @@
+// Hornbill Express · © 2026 Kiu Kwan Tai. All rights reserved.
 // All sounds are synthesised here (original: no samples). Sape plucks, kompang drums, gong, river and rain.
 import { BEAT_MS } from './config.js';
 

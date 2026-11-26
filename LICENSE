@@ -1,0 +1,12 @@
+Hornbill Express
+Copyright (c) 2026 Kiu Kwan Tai. All rights reserved.
+
+This game, including its source code, game design, characters, artwork built in code,
+sounds and text, is the work of Kiu Kwan Tai.
+
+You may play the published game. You may not copy, modify, redistribute, re-host, sell,
+or present this code or game (in whole or in part) as your own work without the
+written permission of the copyright holder.
+
+Third-party software included in this repository keeps its own licence:
+  - Three.js (vendor/three.module.min.js): MIT licence, see vendor/three.LICENSE

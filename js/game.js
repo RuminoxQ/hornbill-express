@@ -1,3 +1,4 @@
+// Hornbill Express · © 2026 Kiu Kwan Tai. All rights reserved.
 // Game state and rules: movement, collisions, flood, deliveries, power-ups, rhythm.
 import { COLS, BEAT_MS, BEAT_WINDOW, HOP_MS, FLOOD, POWERUPS, LANDMARKS, LIVES } from './config.js';
 import { World } from './world.js';

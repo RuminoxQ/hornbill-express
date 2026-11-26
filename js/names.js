@@ -1,3 +1,4 @@
+// Hornbill Express · © 2026 Kiu Kwan Tai. All rights reserved.
 // Name cleaning and a small rude-word filter. Extend BLOCKED for your audience.
 const BLOCKED = [
   'fuck', 'fuk', 'shit', 'bitch', 'cunt', 'cock', 'pussy', 'slut', 'whore', 'nigger', 'nigga', 'fag', 'rape', 'penis', 'vagina', 'porn', 'sex', 'nazi', 'hitler', 'asshole', 'bastard', 'wank', 'twat',

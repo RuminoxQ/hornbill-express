@@ -220,3 +220,18 @@ select { height: 40px; border-radius: 10px; border: 2px solid #D8C6A8; font-fami
 .lives.hurt { animation: hurt 0.6s ease; }
 @keyframes hurt { 0%, 100% { transform: none; } 20% { transform: translateX(-6px); } 40% { transform: translateX(6px); } 60% { transform: translateX(-4px); } 80% { transform: translateX(3px); } }
 body.reduce .lives.hurt { animation: none; }
+
+/* about card */
+.egg { position: fixed; inset: 0; z-index: 70; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(42,27,61,0.7); overflow: hidden; }
+.egg-card { position: relative; z-index: 1; width: min(380px, 100%); display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 20px 22px 22px; border-radius: 24px; background: var(--cream); box-shadow: 0 8px 0 #C99A10, 0 0 0 4px var(--gold); text-align: center; }
+.egg-card canvas { width: 140px; height: 140px; }
+.egg-title { font-family: var(--head); font-size: 26px; }
+.egg-by { font-weight: 700; font-size: 14px; color: #5A4A63; }
+.egg-name { font-family: var(--head); font-size: 30px; color: var(--orange-d); }
+.egg-meta { font-weight: 700; font-size: 12px; color: #5A4A63; margin-bottom: 10px; }
+.egg-row { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+.egg-row .btn { min-height: 46px; font-size: 16px; padding: 0 18px; }
+.egg-p { position: absolute; top: -20px; width: 10px; height: 14px; animation: eggfall 2.6s linear forwards; }
+@keyframes eggfall { to { transform: translateY(110vh) rotate(540deg); } }
+body.reduce .egg-p { display: none; }
+#titleBird { cursor: default; touch-action: manipulation; }
